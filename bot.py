@@ -44,8 +44,9 @@ async def process_pdf(pdf_path: str, progress_cb=None):
         total = len(pdf.pages)
         for i, page in enumerate(pdf.pages):
             pn = i + 1
-            if progress_cb:
-                bar = "▓" * pn + "░" * (total - pn)
+            # Update every 5 pages to avoid Telegram flood control
+            if progress_cb and (pn == 1 or pn % 5 == 0 or pn == total):
+                bar = "▓" * int(pn/total*20) + "░" * (20 - int(pn/total*20))
                 await progress_cb(
                     f"🌐 ဘာသာပြန်နေပါတယ် — {pn}/{total} မျက်နှာ\n"
                     f"{bar} {int(pn/total*100)}%"
@@ -177,8 +178,9 @@ async def make_bilingual_pdf(pdf_path: str, progress_cb=None) -> bytes:
     png_pages = []
     for i in range(total):
         pn = i + 1
-        if progress_cb:
-            bar = "▓" * pn + "░" * (total - pn)
+        # Update every 5 pages to avoid Telegram flood control
+        if progress_cb and (pn == 1 or pn % 5 == 0 or pn == total):
+            bar = "▓" * int(pn/total*20) + "░" * (20 - int(pn/total*20))
             await progress_cb(
                 f"✅ ဘာသာပြန်ပြီးပြီ!\n"
                 f"🎨 PDF ဆောက်နေပါတယ် — {pn}/{total} မျက်နှာ\n"
