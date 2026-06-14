@@ -1,4 +1,13 @@
 import os
+import sys
+import subprocess
+
+# Install Playwright Chromium at runtime (Railway / cloud)
+print("Ensuring Playwright Chromium is installed...")
+subprocess.run(["playwright", "install", "chromium", "--with-deps"],
+               check=False, capture_output=False)
+print("Playwright ready.")
+
 import asyncio
 import tempfile
 import re
