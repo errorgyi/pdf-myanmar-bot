@@ -16,7 +16,7 @@ from telegram.ext import (
     filters, ContextTypes
 )
 
-TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+TOKEN = os.getenv("TELEGRAM_TOKEN", "8767341498:AAEFyEg5aHmAs4hCy1E60xsCfCZtQ3fFbfA")
 
 # ── Myanmar font (bundled in repo) ──────────────────────────
 FONT_PATH = Path(__file__).parent / "fonts" / "NotoSansMyanmar-Regular.ttf"
