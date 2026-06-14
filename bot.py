@@ -162,16 +162,20 @@ async def make_bilingual_pdf(pdf_path: str, progress_cb=None) -> bytes:
     total = len(pdf_doc)
 
     if progress_cb:
-        await progress_cb(f"📄 PDF ဖတ်နေပါတယ် ({total} မျက်နှာ)...")
+        await progress_cb(f"📄 PDF ဖတ်ပြီး ဘာသာပြန်နေပါတယ် ({total} မျက်နှာ)...\n⏳ ခဏစောင့်ပါ")
 
-    translations, _ = process_pdf(pdf_path)
-
-    if progress_cb:
-        await progress_cb("🌐 ဘာသာပြန်ပြီး PDF ဆောက်နေပါတယ်...")
+    translations, _ = await process_pdf(pdf_path, progress_cb=progress_cb)
 
     png_pages = []
     for i in range(total):
         pn = i + 1
+        if progress_cb:
+            bar = "▓" * pn + "░" * (total - pn)
+            await progress_cb(
+                f"✅ ဘာသာပြန်ပြီးပြီ!\n"
+                f"🎨 PDF ဆောက်နေပါတယ် — {pn}/{total} မျက်နှာ\n"
+                f"{bar} {int(pn/total*100)}%"
+            )
         page = pdf_doc[i]
         mat = fitz.Matrix(130/72, 130/72)
         pix = page.get_pixmap(matrix=mat, alpha=False)
@@ -183,6 +187,8 @@ async def make_bilingual_pdf(pdf_path: str, progress_cb=None) -> bytes:
         png_pages.append(png)
 
     pdf_doc.close()
+    if progress_cb:
+        await progress_cb("📦 PDF စုစည်းနေပါတယ်... နည်းနည်းပဲ ကျန်တော့တယ်!")
     return pngs_to_pdf(png_pages)
 
 
