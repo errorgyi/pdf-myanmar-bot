@@ -38,17 +38,25 @@ def translate_text(text: str) -> str:
 
 
 # ── Extract + Translate all pages ───────────────────────────
-def process_pdf(pdf_path: str) -> dict[int, str]:
+async def process_pdf(pdf_path: str, progress_cb=None):
     translations = {}
     with pdfplumber.open(pdf_path) as pdf:
         total = len(pdf.pages)
         for i, page in enumerate(pdf.pages):
+            pn = i + 1
+            if progress_cb:
+                bar = "▓" * pn + "░" * (total - pn)
+                await progress_cb(
+                    f"🌐 ဘာသာပြန်နေပါတယ် — {pn}/{total} မျက်နှာ\n"
+                    f"{bar} {int(pn/total*100)}%"
+                )
             text = page.extract_text()
             if text and text.strip():
-                translations[i + 1] = translate_text(text)
+                translations[pn] = translate_text(text)
             else:
-                translations[i + 1] = "(ဤစာမျက်နှာတွင် ဘာသာပြန်မရရှိပါ)"
+                translations[pn] = "(ဤစာမျက်နှာတွင် ဘာသာပြန်မရရှိပါ)"
     return translations, total
+
 
 
 # ── Build HTML (side-by-side landscape) ─────────────────────
