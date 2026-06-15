@@ -144,7 +144,7 @@ async def html_to_png_bytes(html: str) -> bytes:
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page(viewport={"width": 1123, "height": 794})
-        await page.set_content(html, wait_until="networkidle")
+        await page.set_content(html, wait_until="domcontentloaded", timeout=15000)
         png = await page.screenshot(clip={"x":0,"y":0,"width":1123,"height":794})
         await browser.close()
     return png
