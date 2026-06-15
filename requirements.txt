@@ -3,3 +3,5 @@ pdfplumber
 PyMuPDF
 deep-translator
 playwright
+pytesseract
+Pillow
