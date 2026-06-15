@@ -69,6 +69,26 @@ async def process_pdf(pdf_path: str, progress_cb=None):
 
 
 
+# ── Load Myanmar font as base64 ──────────────────────────────
+import base64 as _b64
+
+def _get_font_b64() -> str:
+    font_path = Path(__file__).parent / "fonts" / "MyanmarText.ttf"
+    if font_path.exists():
+        return _b64.b64encode(font_path.read_bytes()).decode()
+    return ""
+
+_FONT_B64 = _get_font_b64()
+
+def _font_face_css() -> str:
+    if _FONT_B64:
+        return f"""@font-face {{
+    font-family: 'MyanmarText';
+    src: url('data:font/truetype;base64,{_FONT_B64}') format('truetype');
+    font-weight: normal;
+  }}"""
+    return ""
+
 # ── Build HTML (side-by-side landscape) ─────────────────────
 def build_html(page_num: int, total: int, img_b64: str, myan_text: str) -> str:
     safe = (myan_text
@@ -76,14 +96,17 @@ def build_html(page_num: int, total: int, img_b64: str, myan_text: str) -> str:
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace("\n", "<br>"))
+    font_css = _font_face_css()
+    font_family = "'MyanmarText','Myanmar Text','Noto Sans Myanmar',sans-serif" if _FONT_B64 else "'Myanmar Text','Noto Sans Myanmar',sans-serif"
     return f"""<!DOCTYPE html>
 <html lang="my">
 <head><meta charset="UTF-8">
 <style>
+  {font_css}
   * {{ margin:0; padding:0; box-sizing:border-box; }}
   body {{
     width:1123px; height:794px;
-    font-family:'Noto Sans Myanmar','Myanmar Text',sans-serif;
+    font-family:{font_family};
     background:#f0f4ff; display:flex; flex-direction:column; overflow:hidden;
   }}
   .header {{
@@ -110,10 +133,12 @@ def build_html(page_num: int, total: int, img_b64: str, myan_text: str) -> str:
   .right-label {{
     background:#dbeafe; color:#1e3a6e; font-size:12px;
     padding:5px 14px; border-bottom:2px solid #93c5fd; flex-shrink:0;
+    font-family:{font_family};
   }}
   .translation {{
-    flex:1; padding:12px 16px; font-size:13px; line-height:2.0;
+    flex:1; padding:12px 16px; font-size:14px; line-height:2.2;
     color:#0d1b2a; overflow:hidden; word-break:break-word;
+    font-family:{font_family};
   }}
   .footer {{
     background:#dbeafe; font-family:Arial,sans-serif; font-size:8px;
