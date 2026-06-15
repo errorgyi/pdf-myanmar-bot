@@ -153,7 +153,7 @@ def build_html(page_num: int, total: int, img_b64: str, myan_text: str) -> str:
   <div class="main">
     <div class="left">
       <div class="left-label">Original — Page {page_num}</div>
-      <div class="left-img"><img src="data:image/png;base64,{img_b64}"></div>
+      <div class="left-img"><img src="data:image/jpeg;base64,{img_b64}"></div>
     </div>
     <div class="right">
       <div class="right-label">မြန်မာဘာသာပြန်ချက် — စာမျက်နှာ {page_num}</div>
@@ -164,23 +164,27 @@ def build_html(page_num: int, total: int, img_b64: str, myan_text: str) -> str:
 </body></html>"""
 
 
-# ── Render HTML → PNG via Playwright ────────────────────────
+# ── Render HTML → JPEG via Playwright ───────────────────────
 async def html_to_png_bytes(html: str) -> bytes:
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page(viewport={"width": 1123, "height": 794})
         await page.set_content(html, wait_until="domcontentloaded", timeout=15000)
-        png = await page.screenshot(clip={"x":0,"y":0,"width":1123,"height":794})
+        # Use JPEG (quality=82) instead of PNG to reduce file size ~70%
+        jpg = await page.screenshot(
+            clip={"x":0,"y":0,"width":1123,"height":794},
+            type="jpeg", quality=82
+        )
         await browser.close()
-    return png
+    return jpg
 
 
-# ── Assemble PNG list → PDF ──────────────────────────────────
+# ── Assemble JPEG list → compressed PDF ─────────────────────
 def pngs_to_pdf(png_list: list[bytes]) -> bytes:
     doc = fitz.open()
-    for png_bytes in png_list:
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            f.write(png_bytes)
+    for jpg_bytes in png_list:
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
+            f.write(jpg_bytes)
             tmp = f.name
         img_doc = fitz.open(tmp)
         pdf_bytes = img_doc.convert_to_pdf()
@@ -189,7 +193,8 @@ def pngs_to_pdf(png_list: list[bytes]) -> bytes:
         doc.insert_pdf(img_pdf)
         os.unlink(tmp)
     out = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
-    doc.save(out.name)
+    # deflate=True + garbage=4 compresses PDF significantly
+    doc.save(out.name, deflate=True, garbage=4, clean=True)
     doc.close()
     with open(out.name, "rb") as f:
         data = f.read()
@@ -221,9 +226,10 @@ async def make_bilingual_pdf(pdf_path: str, progress_cb=None) -> bytes:
                 f"{bar} {int(pn/total*100)}%"
             )
         page = pdf_doc[i]
-        mat = fitz.Matrix(130/72, 130/72)
+        mat = fitz.Matrix(96/72, 96/72)  # 96 DPI is sufficient, smaller than 130
         pix = page.get_pixmap(matrix=mat, alpha=False)
-        img_b64 = base64.b64encode(pix.tobytes("png")).decode()
+        # Use JPEG for original page image to reduce HTML size
+        img_b64 = base64.b64encode(pix.tobytes("jpeg", jpg_quality=85)).decode()
 
         myan = translations.get(pn, "(ဘာသာပြန်မရရှိ)")
         html = build_html(pn, total, img_b64, myan)
