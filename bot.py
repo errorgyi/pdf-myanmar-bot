@@ -132,6 +132,14 @@ def ocr_page(fitz_page) -> str:
     except Exception:
         return ""
 
+def is_cid_garbage(text: str) -> bool:
+    """Detect (cid:XX) encoded text — unusable, needs OCR fallback."""
+    if not text:
+        return False
+    cid_count = text.count("(cid:")
+    total_words = max(len(text.split()), 1)
+    return cid_count > 3 or (cid_count / total_words) > 0.2
+
 # ═══════════════════════════════════════════════════════════
 #  PDF Processing
 # ═══════════════════════════════════════════════════════════
@@ -161,13 +169,13 @@ async def process_pdf(
                     f"{bar} {int(prog/count*100)}%"
                 )
             text = pdf.pages[i].extract_text() or ""
-            if not text.strip():
-                text = ocr_page(fitz_doc[i])          # OCR fallback
+            # Fallback to OCR if: (1) no text, or (2) CID garbage font
+            if not text.strip() or is_cid_garbage(text):
+                text = ocr_page(fitz_doc[i])
             if text.strip():
                 translations[pn] = translate_text(text)
             else:
                 translations[pn] = "(ဤစာမျက်နှာတွင် ဘာသာပြန်မရရှိပါ)"
-
         fitz_doc.close()
     return translations
 
